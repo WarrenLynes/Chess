@@ -4,7 +4,7 @@ import axios from "axios";
 
 export async function loginWithToken(token) {
   const user = await fetch('/api/authenticate', {
-  'method': 'POST',
+    'method': 'POST',
     'headers': {
       'Content-Type': 'application/json',
       'Authentication': token
@@ -20,39 +20,39 @@ export async function loginWithToken(token) {
   return user;
 }
 
-export async function login({email, password}) {
-  const {user, token} = await fetch('/api/login', {
+export async function login({ email, password }) {
+  const { user, token } = await fetch('/api/login', {
     'method': 'POST',
-    'body': JSON.stringify({email, password}),
+    'body': JSON.stringify({ email, password }),
     'headers': {
       'Content-Type': 'application/json'
     }
 
   }).then((res) => res.json());
   localStorage.setItem('token', token);
-  return {...user, token};
+  return { ...user, token };
 }
 
-export async function register({email, password}) {
+export async function register({ email, password }) {
   try {
     const user = await fetch('/api/register', {
       method: 'POST',
-      body: JSON.stringify({email, password})
+      body: JSON.stringify({ email, password })
     }).then((res) => res.json());
     return user;
-  } catch(e) {
+  } catch (e) {
     throw Error(e);
   }
 }
 
 export async function saveGameImage(token, image, gameId) {
   const url = `/api/upload/${gameId}`;
-  const config = {headers: { 'Authorization': token}};
+  const config = { headers: { 'Authorization': token } };
   try {
-    const result  = await axios.post(url, image, config);
+    const result = await axios.post(url, { image }, config);
     console.log(result);
     return result;
-  } catch(e) {
+  } catch (e) {
     throw Error(e);
   }
 }
@@ -61,10 +61,10 @@ export async function fetchCompletedGames(token) {
   try {
     const games = await fetch('/api/games', {
       method: 'GET',
-      headers: {'Authorization': token}
+      headers: { 'Authorization': token }
     }).then((res) => res.json());
     return games;
-  } catch(e) {
+  } catch (e) {
     throw Error(e);
   }
 }
@@ -73,9 +73,9 @@ export async function fetchUser(token, displayName) {
   try {
     return fetch(`/api/user-profile/${displayName}`, {
       method: 'GET',
-      headers: {'Authorization': token}
+      headers: { 'Authorization': token }
     }).then((res) => res.json());
-  } catch(e) {
+  } catch (e) {
     throw Error(e);
   }
 }

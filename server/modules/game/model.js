@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const gameConfiguration = new mongoose.Schema({
+  _gameImage: mongoose.Schema.Types.String,
   fullMove: mongoose.Schema.Types.Number,
   halfMove: mongoose.Schema.Types.Number,
   enPassant: mongoose.Schema.Types.String,

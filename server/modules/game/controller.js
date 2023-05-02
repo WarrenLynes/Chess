@@ -6,14 +6,10 @@ const base64Img = require("base64-img");
 function gameController() {
   const router = new express.Router();
 
-  router.post('/save-game-image/:gameId', async (req, res, next) => {
-    const {image} = req.body;
-  });
+  router.get('/:id', authMiddleware, async (req, res, next) => {
+    const { id } = req.params;
 
-  router.get('/:id',  authMiddleware, async (req, res, next) => {
-    const {id} = req.params;
-
-    if(!id) {
+    if (!id) {
       return res.status(400).send('ID REQUIRED');
     }
 
@@ -25,7 +21,7 @@ function gameController() {
   router.get('/', authMiddleware, async (req, res, next) => {
     const user = req.user;
     Game.find()
-      .where({ $or: [{black: user._id}, {white: user._id}]})
+      .where({ $or: [{ black: user._id }, { white: user._id }] })
       .populate('white')
       .populate('black')
       .then((games) => {
@@ -39,28 +35,21 @@ function gameController() {
       const newGame = new Game(req.body);
       await newGame.save();
       res.status(201).json(newGame);
-    } catch(e) {
+    } catch (e) {
       next(e);
     }
   });
 
   router.put('/:id', authMiddleware, async (req, res, next) => {
     try {
-      const {id} = req.params;
+      const { id } = req.params;
       let game = await Game.findById(id);
-      game = {...game, ...req.body};
+      game = { ...game, ...req.body };
       await game.save();
       res.status(204).send(game);
-    } catch(e) {
+    } catch (e) {
       res.status(400).send(e);
     }
-  });
-
-  router.post('/save-game-image/:gameId', async (req, res, next) => {
-    const image = req.body;
-    base64Img.img(image, './server/public', Date.now(), function(err, filepath) {
-      res.status(200).send(filepath);
-    })
   });
 
   return router;

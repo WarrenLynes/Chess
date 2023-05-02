@@ -64,6 +64,7 @@ export default function Game() {
       }).then(function (canvas) {
         // It will return a canvas element
         let _image = canvas.toDataURL("image/png", 0.5);
+        console.log(_image);
         saveGameImage(token, _image, gameId)
           .then((x) => {
             console.log(x);
