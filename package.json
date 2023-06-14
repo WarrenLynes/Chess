@@ -40,6 +40,7 @@
   },
   "proxy": "http://localhost:3333",
   "scripts": {
+    "start-server": "nodemon server",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
