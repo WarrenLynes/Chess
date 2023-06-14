@@ -4,7 +4,6 @@ const jwt = require("jsonwebtoken");
 const authService = require('./service');
 
 function authController(app) {
-
   app.post('/register', register);
   app.post('/login', login);
   app.post('/authenticate', authenticate);
@@ -58,24 +57,24 @@ function authController(app) {
     }
   }
 
-  async function  authenticate(req, res, next) {
+  async function authenticate(req, res, next) {
     const token = req.headers['authentication'];
 
     if (token) {
-      try{
+      try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findById(decoded._id);
         if (user && user._id) {
           const token = updatedToken(user._id, user.email);
           return res.status(201).json({ ...user._doc, token });
         }
-      } catch(e) {
+      } catch (e) {
         console.log(e);
       }
 
     }
   }
-async function  logout(req, res, next) {
+  async function logout(req, res, next) {
     const token = req.headers['authentication'];
     if (token) {
       const user = await authService.authenticate(token);

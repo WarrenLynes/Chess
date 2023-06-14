@@ -64,7 +64,6 @@ export default function Game() {
       }).then(function (canvas) {
         // It will return a canvas element
         let _image = canvas.toDataURL("image/png", 0.5);
-        console.log(_image);
         saveGameImage(token, _image, gameId)
           .then((x) => {
             console.log(x);
@@ -98,6 +97,7 @@ export default function Game() {
   }
 
   const onStartGame = (game) => {
+    console.log(game);
     dispatch({ type: 'INITIALIZE_GAME', game });
     dispatch(addNotification({ message: 'GAME STARTED', duration: 3000 }));
     setPlayerTeam(game.playerTeam)

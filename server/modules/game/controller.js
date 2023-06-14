@@ -1,12 +1,16 @@
 const express = require("express");
 const Game = require('./model');
 const authMiddleware = require("../../middleware/auth");
-const base64Img = require("base64-img");
 
 function gameController() {
   const router = new express.Router();
 
-  router.get('/:id', authMiddleware, async (req, res, next) => {
+  router.get('/', authMiddleware, getGames);
+  router.get('/:id', authMiddleware, getGameById);
+  router.post('/', authMiddleware, createGame);
+  router.put('/:id', authMiddleware, updateGame);
+
+  async function getGameById(req, res, next) {
     const { id } = req.params;
 
     if (!id) {
@@ -16,21 +20,20 @@ function gameController() {
     const game = await Game.findById(id);
 
     return res.status(200).json(game);
-  });
+  }
 
-  router.get('/', authMiddleware, async (req, res, next) => {
+  async function getGames(req, res, next) {
     const user = req.user;
     Game.find()
       .where({ $or: [{ black: user._id }, { white: user._id }] })
       .populate('white')
       .populate('black')
       .then((games) => {
-        console.log(games);
         res.status(200).json(games);
       });
-  });
+  }
 
-  router.post('/', authMiddleware, async (req, res, next) => {
+  async function createGame(req, res, next) {
     try {
       const newGame = new Game(req.body);
       await newGame.save();
@@ -38,9 +41,9 @@ function gameController() {
     } catch (e) {
       next(e);
     }
-  });
+  }
 
-  router.put('/:id', authMiddleware, async (req, res, next) => {
+  async function updateGame(req, res, next) {
     try {
       const { id } = req.params;
       let game = await Game.findById(id);
@@ -50,7 +53,7 @@ function gameController() {
     } catch (e) {
       res.status(400).send(e);
     }
-  });
+  }
 
   return router;
 }

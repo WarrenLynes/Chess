@@ -11,7 +11,6 @@ export default function Home() {
   const [loading, setLoading] = useState(null);
   const [completedGames, setCompletedGames] = useState(null);
 
-
   useEffect(() => {
     if (!socket)
       return;
@@ -64,17 +63,18 @@ export default function Home() {
       </Link>
     )
   }
+
   return socket && (
     <div style={{ maxHeight: '100%', width: '100%', overflow: 'scroll' }}>
       {loading && (
         <h1>{loading}</h1>
       )}
       <h1>{user.email}</h1>
-      <h1>{socket.id}</h1>
 
       {completedGames && completedGames.map((g) => (
         <div className="gamePreview" key={g._id}>
           <h5>{g._id}</h5>
+          <img src={`api/${g.img}`} style={{ height: '175px' }} />
           <h5>VS {linkToUserProfile(g.white, g.black)}</h5>
         </div>
       ))}

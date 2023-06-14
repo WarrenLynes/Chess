@@ -23,6 +23,7 @@
     "js-chess-engine": "^1.0.2",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.1.0",
+    "node-html-to-image": "^3.3.0",
     "path": "^0.12.7",
     "prompt-list": "^3.2.0",
     "react": "^18.2.0",

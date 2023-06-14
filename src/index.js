@@ -6,7 +6,7 @@ import { Provider } from "react-redux";
 import thunk from "redux-thunk";
 import SocketProvider from "./SocketProvider";
 import AuthRouter from "./AuthRouter";
-import logger from "./redux/game/middleware";
+import logger from "./redux/middleware";
 import gameReducer from "./redux/game/reducer";
 import authReducer from "./redux/auth/reducer";
 import notifications from "./redux/notifications";

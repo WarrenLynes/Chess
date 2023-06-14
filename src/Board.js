@@ -7,7 +7,6 @@ export default function Board({ children, playerTeam }) {
   const width = window.innerWidth;
 
   const getBoardDimensions = () => {
-    console.log(width, height);
     if (width > height) {
       return { height: height - 40, width: height - 40 };
     } else {

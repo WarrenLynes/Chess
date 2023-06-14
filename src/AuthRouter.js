@@ -13,7 +13,7 @@ function AuthRouter() {
   const { authenticated } = useSelector(({ auth }) => auth);
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
-  const [ambiguity, setAmbiguity] = useState(true);
+  const [, setAmbiguity] = useState(true);
 
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const gameConfiguration = new mongoose.Schema({
-  _gameImage: mongoose.Schema.Types.String,
+  finalImage: mongoose.Schema.Types.String,
   fullMove: mongoose.Schema.Types.Number,
   halfMove: mongoose.Schema.Types.Number,
   enPassant: mongoose.Schema.Types.String,
@@ -36,6 +36,7 @@ const messageSchema = new mongoose.Schema({
 });
 
 const schema = new mongoose.Schema({
+  img: mongoose.Schema.Types.String,
   white: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

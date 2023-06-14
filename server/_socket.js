@@ -1,8 +1,6 @@
 const authService = require("./modules/auth/service");
-const {Game} = require("js-chess-engine");
+const { Game } = require("js-chess-engine");
 const GameModel = require('./modules/game/model');
-const User = require('./modules/user/model');
-const colors = require('colors');
 
 const testConfig = {
   "fullMove": 4,
@@ -58,8 +56,6 @@ const games = {};
 const loggedInUsers = {};
 const singles = {};
 
-const log = (title, data) => console.log(`<< ${title} >>\n\t${data}`.blue);
-
 class Connection {
   constructor(io, socket, user) {
     this.io = io;
@@ -67,76 +63,108 @@ class Connection {
     this.socket = socket;
     this.sockets = [];
 
-    loggedInUsers[user._id] = Object.assign({}, user._doc, {socket: socket.id});
+    loggedInUsers[user._id] = Object.assign({}, user._doc, { socket: socket.id });
 
     io.use(async (socket, next) => await this.authenticateRequest(socket, next));
 
     this.listeners = [
-      {id: 'disconnect', cb: () => this.disconnect()},
-      {id: 'PING', cb: (x) => this.ping(x)},
-      {id: 'LOGOUT', cb: (x) => this.logout()},
-      {id: 'INITIATE_SEARCH', cb: () => this.initiateSearch()},
-      {id: 'JOIN_GAME', cb: (gameId) => this.joinGame(gameId)},
-      {id: 'QUIT_GAME', cb: (gameId) => this.quitGame(gameId)},
-      {id: 'HANDLE_PLAYER_MOVE', cb: ({from, to, socketId, gameId}) => this.playerMove({from, to, socketId, gameId})},
+      {
+        id: 'disconnect', cb: () => {
+          console.log('SOCKET IO ON: disconnect', this.user.displayName);
+          return this.disconnect();
+        }
+      },
+      {
+        id: 'PING', cb: (x) => {
+          console.log('SOCKET IO ON: PING', this.user.displayName);
+          return this.ping(x);
+        }
+      },
+      {
+        id: 'LOGOUT', cb: (x) => {
+          console.log('SOCKET IO ON: LOGOUT', this.user.displayName);
+          return this.logout();
+        }
+      },
+      {
+        id: 'INITIATE_SEARCH', cb: (opponentId) => {
+          console.log('SOCKET IO ON: INITIATE_SEARCH', this.user.displayName);
+          return this.initiateSearch(opponentId);
+        }
+      },
+      {
+        id: 'JOIN_GAME', cb: (gameId) => {
+          console.log('SOCKET IO ON: JOIN_GAME', this.user.displayName);
+          return this.joinGame(gameId);
+        }
+      },
+      {
+        id: 'QUIT_GAME', cb: (gameId) => {
+          console.log('SOCKET IO ON: QUIT_GAME', this.user.displayName);
+          return this.quitGame(gameId);
+        }
+      },
+      {
+        id: 'HANDLE_PLAYER_MOVE', cb: ({ from, to, socketId, gameId }) => {
+          console.log('SOCKET IO ON: HANDLE_PLAYER_MOVE', this.user.displayName);
+          return this.playerMove({ from, to, socketId, gameId });
+        }
+      },
     ];
-    this.listeners.forEach(({id, cb}) => socket.on(id, cb));
-    log('LOGGED_IN', Object.keys(loggedInUsers));
+    this.listeners.forEach(({ id, cb }) => socket.on(id, cb));
   }
 
   ping() {
-    log('PING', this.socket.id);
     this.socket.emit('ping', this.socket.id);
     this.socket.emit('UPDATE_OPEN_GAMES', singles);
   }
 
   async disconnect() {
-    log('USER DISCONNECTED', this.socket.id);
 
     delete loggedInUsers[this.user._id];
     delete singles[this.user._id];
     this.io.sockets.emit('UPDATE_OPEN_GAMES', singles);
 
     await Promise.all(
-      this.sockets.map( async (socketId) => {
-        if(games[socketId])
+      this.sockets.map(async (socketId) => {
+        if (games[socketId])
           await this.quitGame(socketId);
         this.socket.leave(socketId);
       })
     );
 
-    this.listeners.forEach(({id, cb}) => this.socket.off(id, cb));
+    this.listeners.forEach(({ id, cb }) => this.socket.off(id, cb));
   }
 
   async logout() {
     const userGames = this._getUserGames();
     this.socket.disconnect();
-    if(userGames)
+    if (userGames)
       await Promise.all(userGames.map(x => this.quitGame(x)));
     delete loggedInUsers[this.user._id];
     delete singles[this.user._id];
   }
 
   getTeam(game) {
-    if(game.black === this.user._id) {
+    if (game.black === this.user._id) {
       return 'black';
-    } else if(game.white === this.user._id) {
+    } else if (game.white === this.user._id) {
       return 'white';
     }
   }
 
-  leaveSocket (socketId) {
+  leaveSocket(socketId) {
     this.socket.leave(socketId);
-    this.sockets = this.sockets.filter(({id}) => id !== socketId);
+    this.sockets = this.sockets.filter(({ id }) => id !== socketId);
   }
 
   async endGame(gameId) {
     const game = games[gameId];
 
-    if(!game)
+    if (!game)
       return;
 
-    const _game = await GameModel.findOne({gameId}).populate('white').populate('black');
+    const _game = await GameModel.findOne({ gameId }).populate('white').populate('black');
     const loserTeam = this.getTeam(game);
     const winnerTeam = loserTeam === 'white' ? 'black' : 'white';
 
@@ -153,12 +181,11 @@ class Connection {
 
     this.io.sockets.in(gameId).emit('GAME_OVER', game);
     this.leaveSocket(gameId);
-    log('PLAYER QUIT GAME', gameId + ' ' + this.socket.id + ' ' + this.user._id);
   }
 
   _getGame(gameId) {
     const game = games[gameId];
-    return {
+    return Object.assign({}, {
       ...game.exportJson(),
       id: game.id,
       black: game.black,
@@ -168,7 +195,7 @@ class Connection {
       blackName: loggedInUsers[game.black].displayName,
       blackTime: game.blackTime,
       history: game.board.history,
-    };
+    });
   };
 
   _getUserGames() {
@@ -179,13 +206,12 @@ class Connection {
 
   async authenticateRequest(socket, next) {
     const token = socket.handshake.auth.token;
-    if(!token)
+    if (!token)
       return next(new Error('TOKEN REQUIRED'));
 
     authService.authenticate(token)
-      .then(({email, _id}) => {
-        log('AUTH', `${email} - ${socket.id}`);
-        if(_id)
+      .then(({ email, _id }) => {
+        if (_id)
           next();
       });
 
@@ -194,34 +220,32 @@ class Connection {
   joinGame(gameId) {
     const game = games[gameId.toString()];
 
-    if(!game) {
+    if (!game) {
       return this.socket.emit('GAME_UNAVAILABLE', gameId);
     }
 
     const white = game.white;
     const black = game.black;
 
-    if(this.user._id.toString() !== white && this.user._id.toString() !== black)
+    if (this.user._id.toString() !== white && this.user._id.toString() !== black)
       return;
 
     const userId = this.user._id.toString();
 
-    log('PLAYER JOINED GAME', userId);
     this.socket.join(gameId);
     this.sockets.push(gameId);
     this.io.sockets.in(gameId).emit('PLAYER_JOINED', this.socket.id);
 
-    if(this.socket.adapter.rooms.get(gameId).size === 2) {
-      log('START_GAME', game.id);
+    if (this.socket.adapter.rooms.get(gameId).size === 2) {
 
-      this.io.to(loggedInUsers[white].socket).emit('START_GAME', {playerTeam: 'white', ...this._getGame(gameId)});
-      this.io.to(loggedInUsers[black].socket).emit('START_GAME', {playerTeam: 'black', ...this._getGame(gameId)});
+      this.io.to(loggedInUsers[white].socket).emit('START_GAME', { playerTeam: 'white', ...this._getGame(gameId) });
+      this.io.to(loggedInUsers[black].socket).emit('START_GAME', { playerTeam: 'black', ...this._getGame(gameId) });
     }
   }
 
   async _newGame(playerOne, playerTwo) {
-    const id = ( Math.random() * 100000 ) | 0;
-    games[id.toString()] = new Game();
+    const id = (Math.random() * 100000) | 0;
+    games[id.toString()] = new Game(testConfig);
     games[id]['id'] = id.toString();
     games[id]['white'] = playerOne;
     games[id]['black'] = playerTwo;
@@ -245,19 +269,18 @@ class Connection {
     const game = await this._newGame(playerOne, playerTwo);
     this.io.to(loggedInUsers[playerOne].socket).emit('INITIATE_GAME', game);
     this.io.to(loggedInUsers[playerTwo].socket).emit('INITIATE_GAME', game);
-    log('NEW GAME', `${playerOne} vs ${playerTwo}`);
   }
 
   async initiateSearch(opponentId) {
-    if(this._getUserGames())
+    if (this._getUserGames())
       return;
 
     const userId = this.user._id.toString();
 
-    if(singles[userId])
+    if (singles[userId])
       return;
 
-    if(opponentId) {
+    if (opponentId) {
       await this.newGame(userId, opponentId);
       delete singles[opponentId];
       this.io.sockets.emit('UPDATE_OPEN_GAMES', singles);
@@ -266,13 +289,12 @@ class Connection {
 
     const singlesList = Object.keys(singles);
 
-    if(singlesList.length > 0) {
+    if (singlesList.length > 0) {
       await this.newGame(userId, singlesList[0]);
       delete singles[singlesList[0]];
     } else {
       singles[userId] = this.user;
-      this.socket.emit('SEARCH_INITIATED', {que: Object.keys(singles).length});
-      log('SEARCH INITIATED', userId);
+      this.socket.emit('SEARCH_INITIATED', { que: Object.keys(singles).length });
     }
 
     this.io.sockets.emit('UPDATE_OPEN_GAMES', singles);
@@ -281,35 +303,33 @@ class Connection {
   async sendMessage(message, gameId) {
     const game = games[gameId];
     game.chat = [
-      {message, from: this.user._id},
+      { message, from: this.user._id },
       ...game.messages
     ];
 
     this.io.sockets.in(gameId).emit('UPDATE_GAME_CHAT', game.chat);
   }
 
-  async playerMove({from, to, socketId, gameId}) {
+  async playerMove({ from, to, socketId, gameId }) {
     const game = games[gameId];
-    const _game = await GameModel.findOne({gameId}).populate('white').populate('black');
+    const _game = await GameModel.findOne({ gameId }).populate('white').populate('black');
 
-    if(!game || !game.white || !game.black)
+    if (!game || !game.white || !game.black)
       return;
 
     game.move(from, to);
 
     const gameJson = game.exportJson();
 
-    if(gameJson.isFinished) {
+    if (gameJson.isFinished) {
       const winningTeam = gameJson.turn === 'white' ? 'black' : 'white';
-      const winner =  _game[winningTeam];
+      const winner = _game[winningTeam];
       game.winner = _game[winningTeam];
       _game.winner = _game[winningTeam];
-      this.io.sockets.in(gameId).emit('WINNER', {winner, move: {from, to}, game: this._getGame(gameId)});
+      this.io.sockets.in(gameId).emit('WINNER', { winner, move: { from, to }, game: this._getGame(gameId) });
       delete games[gameId];
-      log('GAME OVER: WINNER', `${winningTeam} : ${winner}`);
     } else {
-      this.io.sockets.in(gameId).emit('PLAYER_MOVE', {game: this._getGame(gameId), move: {from, to}});
-      log('PLAYER_MOVE', `${from} > ${to}`);
+      this.io.sockets.in(gameId).emit('PLAYER_MOVE', { game: this._getGame(gameId), move: { from, to } });
     }
 
     _game.configuration = game.exportJson();
@@ -322,14 +342,13 @@ function _connect(io) {
   io.on('connection', async (socket, next) => {
     const token = socket.handshake.auth.token;
 
-    if(!token) {
+    if (!token) {
       return new Error('TOKEN REQUIRED');
     }
     const user = await authService.authenticate(socket.handshake.auth.token);
 
-    if(user && user._id) {
-      log('USER CONNECTED', user.email);
-      if(loggedInUsers[user._id]) {
+    if (user && user._id) {
+      if (loggedInUsers[user._id]) {
         socket.emit('UNAUTHORIZED', 'USER ALREADY LOGGED IN');
         throw new Error('USER ALREADY LOGGED IN')
       } else {
